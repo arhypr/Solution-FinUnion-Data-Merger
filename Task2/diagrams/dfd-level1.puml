@@ -1,0 +1,80 @@
+@startuml DFD_Level1_Interim
+title DFD Level 1 — Промежуточное состояние FinUnion + RetailBank (+3 месяца)\nДействия: Create / Read / Update / Delete / Enrich / Validate / Aggregate
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam nodesep 25
+skinparam ranksep 55
+left to right direction
+
+package "FinUnion — Operational" as FU #E3F2FD {
+  [FU CRM] as FU_CRM
+  [FU Core Banking] as FU_CORE
+  [FU Cards] as FU_CARDS
+  [FU Loans] as FU_LOANS
+}
+
+package "RetailBank — Operational" as RB #FFF3E0 {
+  [RB CRM] as RB_CRM
+  [RB Core Banking] as RB_CORE
+  [RB Cards] as RB_CARDS
+  [RB Loans] as RB_LOANS
+}
+
+package "Общие и целевые компоненты" as TG #E8F5E9 {
+  [Integration Layer\n(ESB + Kafka + CDC)] as IL
+  [MDM Customer Hub] as MDM
+  [Reference Data Management\n(RDM)] as RDM
+  [DataHub / Data Catalog] as DH
+  [DWH] as DWH
+  [BI] as BI
+}
+
+actor "Аналитик" as ANALYST
+actor "Регулятор" as REG
+actor "Сотрудник банка" as EMP
+
+' ===== Клиентские данные → MDM =====
+FU_CRM --> MDM : Create / Update / Deduplicate\nКлиент [async, Kafka]
+RB_CRM --> MDM : Create / Update / Deduplicate\nКлиент [async, Kafka]
+FU_CORE --> MDM : Read / Validate\nКлиент ref [sync REST]
+RB_CORE --> MDM : Read / Validate\nКлиент ref [sync REST]
+
+MDM --> FU_CRM : Enrich / Update\n(golden party_id)
+MDM --> RB_CRM : Enrich / Update\n(golden party_id)
+MDM --> FU_CORE : Enrich (party_id)
+MDM --> RB_CORE : Enrich (party_id)
+MDM --> FU_CRM : Delete / Block\n(152-ФЗ) [async]
+MDM --> RB_CRM : Delete / Block\n(152-ФЗ) [async]
+
+' ===== Справочники =====
+RDM --> MDM : Create / Update\nПродукт, Тариф, Справочник
+MDM --> FU_CORE : Read (Продукт, Тариф)
+MDM --> RB_CORE : Read (Продукт, Тариф)
+MDM --> FU_CARDS : Read (Тариф)
+MDM --> RB_CARDS : Read (Тариф)
+MDM --> FU_LOANS : Read (Продукт)
+MDM --> RB_LOANS : Read (Продукт)
+
+' ===== Операционные данные → IL → DWH =====
+FU_CORE --> IL : CDC\nСчёт, Договор, Транзакция, Платёж
+RB_CORE --> IL : CDC\nСчёт, Договор, Транзакция, Платёж
+FU_CARDS --> IL : CDC\nКарта, Транзакция
+RB_CARDS --> IL : CDC\nКарта, Транзакция
+FU_LOANS --> IL : CDC\nКредит, Платёж
+RB_LOANS --> IL : CDC\nКредит, Платёж
+FU_CRM --> IL : CDC\nОбращение клиента
+RB_CRM --> IL : CDC\nОбращение клиента
+MDM --> IL : CDC\nКлиент (golden)
+RDM --> IL : CDC\nСправочники
+
+IL --> DWH : Validate / Aggregate\n(micro-batch)
+IL --> DH : Enrich\n(metadata, lineage)
+
+' ===== Аналитика и отчётность =====
+DWH --> BI : Aggregate / Read
+DWH --> REG : Aggregate / Read\nРегуляторная отчётность [batch]
+DWH --> DH : Enrich\n(metadata, lineage)
+BI --> ANALYST : Read
+EMP --> BI : Read
+
+@enduml
