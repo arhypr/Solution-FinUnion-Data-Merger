@@ -1,0 +1,184 @@
+@startuml Task1_Logical_Data_Model
+title Логическая модель данных — FinUnion Group после слияния с RetailBank
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide circle
+hide empty methods
+hide empty fields
+left to right direction
+
+entity "Клиент" as CLIENT {
+  * party_id : UUID <<PK>>
+  --
+  client_type : enum
+  full_name : string
+  inn : string
+  passport : string
+  phone : string
+  email : string
+  address : string
+  segment_ref_id : FK
+  branch_ref_id : FK
+  kyc_status : enum
+  status : enum
+}
+
+entity "Справочник" as REFERENCE {
+  * ref_id : UUID <<PK>>
+  --
+  ref_type : enum
+  code : string
+  value : string
+  version : int
+  valid_from : date
+  valid_to : date
+  owner : string
+}
+
+entity "Договор" as AGREEMENT {
+  * agreement_id : UUID <<PK>>
+  --
+  number : string
+  type : enum
+  client_id : FK
+  product_id : FK
+  start_date : date
+  end_date : date
+  status : enum
+}
+
+entity "Продукт" as PRODUCT {
+  * product_id : UUID <<PK>>
+  --
+  code : string
+  name : string
+  type : enum
+  category_ref_id : FK
+  status : enum
+}
+
+entity "Тариф" as TARIFF {
+  * tariff_id : UUID <<PK>>
+  --
+  product_id : FK
+  name : string
+  rate : decimal
+  fee : decimal
+  valid_from : date
+  valid_to : date
+}
+
+entity "Счёт" as ACCOUNT {
+  * account_id : UUID <<PK>>
+  --
+  number : string
+  type : enum
+  currency : string
+  balance : decimal
+  status : enum
+  client_id : FK
+  agreement_id : FK
+  branch_ref_id : FK
+  open_date : date
+  close_date : date
+}
+
+entity "Карта" as CARD {
+  * card_id : UUID <<PK>>
+  --
+  masked_number : string
+  type : enum
+  status : enum
+  expiry : date
+  account_id : FK
+  client_id : FK
+  tariff_id : FK
+  payment_system : string
+}
+
+entity "Кредит" as LOAN {
+  * loan_id : UUID <<PK>>
+  --
+  agreement_id : FK
+  amount : decimal
+  currency : string
+  rate : decimal
+  term_months : int
+  outstanding : decimal
+  status : enum
+  overdue_days : int
+  scoring_band : string
+}
+
+entity "Транзакция" as TRANSACTION {
+  * transaction_id : UUID <<PK>>
+  --
+  account_id : FK
+  card_id : FK
+  payment_id : FK
+  ts : timestamp
+  amount : decimal
+  currency : string
+  op_type : enum
+  status : enum
+  channel : enum
+  counterparty : string
+}
+
+entity "Платёж" as PAYMENT {
+  * payment_id : UUID <<PK>>
+  --
+  ts : timestamp
+  amount : decimal
+  currency : string
+  payer : string
+  payee : string
+  purpose : string
+  status : enum
+  account_id : FK
+  loan_id : FK
+}
+
+entity "Обращение клиента" as APPEAL {
+  * case_id : UUID <<PK>>
+  --
+  client_id : FK
+  channel : enum
+  topic : string
+  text : text
+  status : enum
+  created_at : timestamp
+  assignee : string
+  agreement_id : FK
+  account_id : FK
+  card_id : FK
+  loan_id : FK
+}
+
+CLIENT ||--o{ AGREEMENT : заключает
+CLIENT ||--o{ ACCOUNT : владеет
+CLIENT ||--o{ APPEAL : инициирует
+CLIENT }o--|| REFERENCE : сегмент / отделение
+
+AGREEMENT }o--|| PRODUCT : по продукту
+AGREEMENT ||--o{ ACCOUNT : обслуживает
+AGREEMENT ||--o| LOAN : кредитный договор
+
+PRODUCT ||--o{ TARIFF : имеет тарифы
+PRODUCT }o--|| REFERENCE : категория / код
+
+ACCOUNT ||--o{ CARD : карты
+ACCOUNT ||--o{ TRANSACTION : операции
+ACCOUNT ||--o{ PAYMENT : платежи
+
+CARD ||--o{ TRANSACTION : карточные операции
+LOAN ||--o{ PAYMENT : платежи по кредиту
+
+PAYMENT ||--o{ TRANSACTION : порождает
+
+APPEAL }o--o| AGREEMENT : по договору
+APPEAL }o--o| ACCOUNT : по счёту
+APPEAL }o--o| CARD : по карте
+APPEAL }o--o| LOAN : по кредиту
+
+@enduml

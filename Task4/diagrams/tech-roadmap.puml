@@ -1,0 +1,41 @@
+@startmindmap
+title Технологическая дорожная карта FinUnion + RetailBank
+
+* FinUnion Data Tech Roadmap
+** Adopt
+*** MDM Customer Hub
+*** RDM
+*** Kafka + Debezium CDC
+*** ESB
+*** Airflow
+*** dbt
+*** DWH PostgreSQL
+*** BI
+*** DataHub
+*** Object Storage
+*** IAM / RBAC / ABAC
+*** DLP
+** Trial
+*** Data Lakehouse
+**** Iceberg
+**** Trino
+**** Spark / Flink
+*** Data products
+*** Graph DB
+*** Search Engine
+** Assess
+*** Полный Data Mesh
+*** Feature Store
+*** Real-time ML
+*** SaaS MDM
+*** Multi-cloud Lakehouse
+*** Streaming-only DWH
+** Hold
+*** Point-to-point интеграции
+*** Новые RB Core / Cards / Loans
+*** Локальные справочники
+*** Прямые запросы BI к OLTP
+*** Ручные сверки в Excel
+*** Дублирующие витрины без владельца
+
+@endmindmap

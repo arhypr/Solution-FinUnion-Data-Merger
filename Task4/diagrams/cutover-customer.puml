@@ -1,0 +1,39 @@
+@startuml Cutover_Customer_Data
+title Cutover: домен «Клиентские данные» → MDM Customer Hub
+skinparam shadowing false
+
+start
+
+:Подготовка (T-10):\nпроверка MDM, Kafka, DWH;\nпрогон на стенде;\nрезервные копии;
+
+:Pre-check (T-3):\nсверка количества клиентов;\nтестовый матчинг;\nпроверка rollback;
+
+:Go/No-Go (T-1):\nрешение Cutover Manager,\nData Owner, ИБ;
+
+:Soft freeze (T-2ч):\nновые клиенты и изменения — в очередь;\nплатежи и карты не останавливаются;
+
+:Финальная выгрузка (T):\nFU CRM, RB CRM, ссылки из Core,\nсогласия и блокировки;
+
+:Загрузка в MDM staging (T+30м);\nвалидация схемы;
+
+:Матчинг и дедупликация (T+1ч);\nФИО + ДР + ИНН + телефон + email;
+
+:Сверка (T+2ч):\nконтрольные суммы,\nуникальность ИНН,\nзаполненность ≥ 99,5%,\n100% активных клиентов;
+
+if (Сверка успешна?) then (да)
+  :Переключение (T+3ч):\nMDM публикует party_id;\nCRM, Core, DWH читают из MDM;
+  :Применение очереди изменений;
+  :Мониторинг 72 часа;\nKafka lag, DLQ, дубли,\nсвежесть mart_customers;
+  if (Метрики в норме?) then (да)
+    :Cutover завершён;\nакт подписан;
+  else (нет)
+    :Rollback;
+    :Вернуть потребителей\nна client_id из CRM/Core;
+  endif
+else (нет)
+  :Rollback;
+  :Остановить публикацию party_id;\nвернуть чтение из CRM/Core;
+endif
+
+stop
+@enduml

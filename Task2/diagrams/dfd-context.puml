@@ -1,0 +1,26 @@
+@startuml DFD_Level0_Context
+title DFD Level 0 — Контекстная диаграмма\nFinUnion Group + RetailBank, промежуточное состояние (+3 месяца)
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam nodesep 40
+skinparam ranksep 40
+left to right direction
+
+actor "Клиент" as CLIENT
+actor "Сотрудник банка" as EMP
+actor "Аналитик" as ANALYST
+actor "Регулятор" as REG
+actor "Партнёры" as PARTNER
+
+rectangle "FinUnion Group\nобъединённый ландшафт данных\n(CRM + Core + Cards + Loans +\nMDM + RDM + DWH + BI + DataHub)" as BANK #E8F5E9
+
+CLIENT --> BANK : Обращения, заявки,\nплатежи, запросы
+BANK --> CLIENT : Продукты, ответы,\nвыписки, статусы
+EMP --> BANK : Данные клиента,\nкорректировки, решения
+BANK --> EMP : Единая картина\nпо клиенту
+ANALYST --> BANK : Запросы отчётности
+BANK --> ANALYST : Витрины BI
+PARTNER --> BANK : Партнёрские данные
+BANK --> PARTNER : Данные обслуживания
+BANK --> REG : Регуляторная\nотчётность
+@enduml
