@@ -1,0 +1,74 @@
+@startuml Data_Mesh_Lite
+title Data Mesh-lite — доменные data-продукты
+skinparam componentStyle rectangle
+skinparam shadowing false
+left to right direction
+
+package "Party / Customer Domain" as D1 #E3F2FD {
+  [Customer 360] as DP1
+}
+package "Accounts Domain" as D2 #E8F5E9 {
+  [Accounts & Balances 360] as DP2
+}
+package "Payments / Transactions Domain" as D3 #FFF3E0 {
+  [Payments & Transactions 360] as DP3
+}
+package "Credit Domain" as D4 #F3E5F5 {
+  [Credit Portfolio] as DP4
+}
+package "Cards / Fraud Domain" as D5 #FCE4EC {
+  [Cards & Fraud Signals] as DP5
+}
+package "Service Domain" as D6 #ECEFF1 {
+  [Service Quality 360] as DP6
+}
+
+package "Central Platform" as PLAT #E0F7FA {
+  [DWH PostgreSQL] as DWH
+  [Lakehouse Iceberg] as LAKE
+  [DataHub] as DH
+  [IAM / DLP] as SEC
+}
+
+package "Consumers" as CONS {
+  [BI] as BI
+  [Risk / Antifraud] as RISK
+  [Regulatory] as REG
+  [CRM / Marketing] as CRM
+}
+
+DP1 --> DWH
+DP2 --> DWH
+DP3 --> LAKE
+DP4 --> DWH
+DP5 --> LAKE
+DP6 --> DWH
+
+DH --> DP1
+DH --> DP2
+DH --> DP3
+DH --> DP4
+DH --> DP5
+DH --> DP6
+
+SEC --> DP1
+SEC --> DP3
+SEC --> DP5
+
+BI --> DP1
+BI --> DP2
+BI --> DP3
+BI --> DP4
+BI --> DP5
+BI --> DP6
+
+RISK --> DP3
+RISK --> DP4
+RISK --> DP5
+REG --> DP2
+REG --> DP3
+REG --> DP4
+CRM --> DP1
+CRM --> DP6
+
+@enduml

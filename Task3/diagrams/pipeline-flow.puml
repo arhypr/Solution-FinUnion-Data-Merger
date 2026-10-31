@@ -1,0 +1,87 @@
+@startuml Pipelines_Flow
+title Пайплайны данных — P1–P7
+skinparam componentStyle rectangle
+skinparam shadowing false
+left to right direction
+
+package "Sources" as SRC #E3F2FD {
+  [FU CRM / RB CRM] as CRM
+  [FU Core / RB Core] as CORE
+  [FU Cards / RB Cards] as CARDS
+  [FU Loans / RB Loans] as LOANS
+  [RDM] as RDM
+}
+
+package "Integration" as INT #FFF3E0 {
+  [Kafka + Debezium CDC] as KAFKA
+  [ESB] as ESB
+}
+
+package "Master" as MST #E8F5E9 {
+  [MDM] as MDM
+}
+
+package "Processing" as PRC #F3E5F5 {
+  [Airflow] as AF
+  [dbt] as DBT
+  [Spark / Flink] as SPARK
+}
+
+package "Storage" as STO #E0F7FA {
+  [DWH PostgreSQL] as DWH
+  [Lakehouse Iceberg] as LAKE
+  [Object Storage] as OBJ
+}
+
+package "Serving" as SRV #FCE4EC {
+  [BI] as BI
+  [Regulator] as REG
+  [ML / Antifraud] as ML
+}
+
+' P1 Interim DWH
+CRM --> AF : P1 batch
+CORE --> AF : P1 batch
+AF --> DWH : staging
+DBT --> DWH : core + marts
+DWH --> BI
+
+' P2 Client master data
+CRM --> KAFKA : P2 events
+KAFKA --> MDM : match / dedup
+MDM --> KAFKA : golden party_id
+KAFKA --> DWH : CDC
+
+' P3 Transactions CDC
+CORE --> KAFKA : P3 CDC
+CARDS --> KAFKA : P3 CDC
+LOANS --> KAFKA : P3 CDC
+KAFKA --> SPARK : streaming
+SPARK --> LAKE : bronze/silver/gold
+SPARK --> DWH : aggregates
+
+' P4 Reference data
+RDM --> MDM : P4 versions
+MDM --> KAFKA : publish
+KAFKA --> DWH
+
+' P5 Card history
+OBJ --> SPARK : P5 archive
+SPARK --> LAKE : silver/gold
+LAKE --> DWH : aggregates
+
+' P6 Regulatory
+DWH --> AF : P6 forms
+AF --> REG : delivery
+
+' P7 Appeals
+CRM --> KAFKA : P7 CDC
+KAFKA --> SPARK : masking + enrich
+SPARK --> DWH : mart_appeals
+SPARK --> LAKE : silver
+
+' ML
+LAKE --> ML
+DWH --> ML
+
+@enduml

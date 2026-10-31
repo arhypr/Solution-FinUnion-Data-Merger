@@ -1,0 +1,165 @@
+@startuml Star_Schema_Transactions
+title Аналитическая модель «звезда» — транзакции
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide empty methods
+hide empty fields
+left to right direction
+
+entity "dim_date" as DIM_DATE {
+  * date_key <<PK>>
+  --
+  day
+  month
+  quarter
+  year
+}
+
+entity "dim_customer" as DIM_CUST {
+  * customer_key <<PK>>
+  --
+  party_id
+  customer_type
+  segment
+  region
+  kyc_status
+  valid_from
+  valid_to
+  is_current
+}
+
+entity "dim_account" as DIM_ACC {
+  * account_key <<PK>>
+  --
+  account_id
+  account_type
+  currency
+  status
+  branch_id
+  valid_from
+  valid_to
+}
+
+entity "dim_card" as DIM_CARD {
+  * card_key <<PK>>
+  --
+  card_id
+  card_type
+  payment_system
+  status
+  valid_from
+  valid_to
+}
+
+entity "dim_product" as DIM_PROD {
+  * product_key <<PK>>
+  --
+  product_id
+  product_code
+  product_name
+  product_type
+  category
+}
+
+entity "dim_tariff" as DIM_TAR {
+  * tariff_key <<PK>>
+  --
+  tariff_id
+  product_id
+  rate
+  fee
+  valid_from
+  valid_to
+}
+
+entity "dim_channel" as DIM_CH {
+  * channel_key <<PK>>
+  --
+  channel_id
+  channel_name
+}
+
+entity "dim_branch" as DIM_BR {
+  * branch_key <<PK>>
+  --
+  branch_id
+  branch_name
+  region
+}
+
+entity "dim_counterparty" as DIM_CP {
+  * counterparty_key <<PK>>
+  --
+  counterparty_id
+  counterparty_type
+  category
+}
+
+entity "fact_transactions" as FACT_TX {
+  * transaction_key <<PK>>
+  --
+  date_key <<FK>>
+  customer_key <<FK>>
+  account_key <<FK>>
+  card_key <<FK>>
+  product_key <<FK>>
+  tariff_key <<FK>>
+  channel_key <<FK>>
+  branch_key <<FK>>
+  counterparty_key <<FK>>
+  --
+  amount
+  fee
+  count
+  balance_after
+}
+
+entity "fact_payments" as FACT_PAY {
+  * payment_key <<PK>>
+  --
+  date_key <<FK>>
+  customer_key <<FK>>
+  account_key <<FK>>
+  product_key <<FK>>
+  channel_key <<FK>>
+  --
+  amount
+  fee
+  count
+}
+
+entity "fact_loan_payments" as FACT_LP {
+  * loan_payment_key <<PK>>
+  --
+  date_key <<FK>>
+  customer_key <<FK>>
+  product_key <<FK>>
+  --
+  amount
+  principal
+  interest
+  overdue_amount
+}
+
+FACT_TX }o--|| DIM_DATE
+FACT_TX }o--|| DIM_CUST
+FACT_TX }o--|| DIM_ACC
+FACT_TX }o--|| DIM_CARD
+FACT_TX }o--|| DIM_PROD
+FACT_TX }o--|| DIM_TAR
+FACT_TX }o--|| DIM_CH
+FACT_TX }o--|| DIM_BR
+FACT_TX }o--|| DIM_CP
+
+FACT_PAY }o--|| DIM_DATE
+FACT_PAY }o--|| DIM_CUST
+FACT_PAY }o--|| DIM_ACC
+FACT_PAY }o--|| DIM_PROD
+FACT_PAY }o--|| DIM_CH
+
+FACT_LP }o--|| DIM_DATE
+FACT_LP }o--|| DIM_CUST
+FACT_LP }o--|| DIM_PROD
+
+@enduml

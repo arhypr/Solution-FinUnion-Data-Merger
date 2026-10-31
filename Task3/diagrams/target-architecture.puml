@@ -1,0 +1,141 @@
+@startuml Target_Data_Architecture
+title Целевая архитектура данных — FinUnion Group + RetailBank (12 месяцев)
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam nodesep 20
+skinparam ranksep 40
+top to bottom direction
+
+package "Operational Systems (OLTP)" as OPS #E3F2FD {
+  [FU Core] as FU_CORE
+  [FU Cards] as FU_CARDS
+  [FU Loans] as FU_LOANS
+  [FU CRM] as FU_CRM
+  [RB Core\n(до cutover)] as RB_CORE
+  [RB Cards\n(до cutover)] as RB_CARDS
+  [RB Loans\n(до cutover)] as RB_LOANS
+  [RB CRM\n(до cutover)] as RB_CRM
+}
+
+package "Integration Layer" as INT #FFF3E0 {
+  [ESB\n(sync)] as ESB
+  [Kafka\n(async / streaming)] as KAFKA
+  [Debezium CDC] as CDC
+  [API Gateway] as API
+}
+
+package "Master Data" as MDM #E8F5E9 {
+  [MDM Customer Hub] as MDM1
+  [RDM\n(продукты, тарифы, справочники)] as RDM
+}
+
+package "Processing" as PROC #F3E5F5 {
+  [Airflow\n(оркестрация)] as AIRFLOW
+  [dbt\n(трансформации)] as DBT
+  [Spark / Flink\n(большие данные)] as SPARK
+  [Trino\n(федеративные запросы)] as TRINO
+}
+
+package "Storage" as STOR #E0F7FA {
+  [DWH PostgreSQL\nstaging → core → marts] as DWH
+  [Data Lakehouse\nIceberg: bronze/silver/gold] as LAKE
+  [Object Storage\nдокументы, архивы] as OBJ
+  [Graph DB\nAML / антифрод] as GRAPH
+  [Search Engine\nобращения, поиск] as SEARCH
+}
+
+package "Serving" as SERV #FCE4EC {
+  [BI\nдашборды, витрины] as BI
+  [Regulatory Reporting] as REGREP
+  [Data Science / ML] as DS
+}
+
+package "Governance" as GOV #ECEFF1 {
+  [DataHub\nкаталог, lineage, владельцы] as DATAHUB
+  [Data Quality\n(dbt tests, GE)] as DQ
+  [IAM / RBAC / ABAC] as IAM
+  [DLP / Маскирование] as DLP
+}
+
+actor "Аналитик" as ANALYST
+actor "Регулятор" as REG
+actor "Сотрудник" as EMP
+
+' Operational → Integration
+FU_CORE --> CDC
+FU_CARDS --> CDC
+FU_LOANS --> CDC
+FU_CRM --> CDC
+RB_CORE --> CDC
+RB_CARDS --> CDC
+RB_LOANS --> CDC
+RB_CRM --> CDC
+CDC --> KAFKA
+FU_CORE --> ESB
+FU_CARDS --> ESB
+FU_LOANS --> ESB
+FU_CRM --> ESB
+
+' Client master data
+FU_CRM --> KAFKA : клиент
+RB_CRM --> KAFKA : клиент
+KAFKA --> MDM : Create/Update/Deduplicate
+MDM --> KAFKA : golden party_id
+KAFKA --> FU_CORE : Enrich
+KAFKA --> FU_CRM : Enrich
+KAFKA --> DWH : CDC golden
+
+' Reference data
+RDM --> MDM : версии продуктов/тарифов
+MDM --> KAFKA : публикация справочников
+KAFKA --> FU_CORE
+KAFKA --> FU_CARDS
+KAFKA --> FU_LOANS
+KAFKA --> DWH
+
+' Streaming to Lakehouse
+KAFKA --> SPARK : streaming
+SPARK --> LAKE : bronze → silver → gold
+KAFKA --> LAKE : raw events (bronze)
+OBJ --> SPARK : архивные выгрузки
+
+' Batch to DWH
+AIRFLOW --> DWH : batch ELT
+AIRFLOW --> LAKE : batch
+DBT --> DWH : трансформации
+DBT --> LAKE : gold-модели
+SPARK --> DWH : агрегаты
+
+' Federated
+TRINO --> DWH
+TRINO --> LAKE
+TRINO --> OBJ
+
+' Serving
+DWH --> BI
+LAKE --> BI
+DWH --> REGREP
+LAKE --> DS
+DWH --> DS
+BI --> ANALYST
+BI --> EMP
+REGREP --> REG
+
+' Governance
+DWH --> DATAHUB : lineage
+LAKE --> DATAHUB : lineage
+KAFKA --> DATAHUB : lineage
+DBT --> DATAHUB : lineage
+AIRFLOW --> DATAHUB : lineage
+DATAHUB --> DQ
+IAM --> DWH
+IAM --> LAKE
+DLP --> DWH
+DLP --> LAKE
+
+' Auxiliary
+LAKE --> GRAPH : связи
+FU_CRM --> SEARCH : обращения
+SEARCH --> BI
+
+@enduml
