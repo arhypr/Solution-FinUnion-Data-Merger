@@ -1,0 +1,31 @@
+@startgantt
+title План миграции FinUnion + RetailBank (12 месяцев)
+Project starts 2026-11-01
+
+[1. Data discovery] lasts 21 days
+[2. Target design freeze] lasts 14 days
+[3. Integration foundation] lasts 42 days
+[4. MDM Customer Hub + RDM] lasts 42 days
+[5. Interim DWH reporting] lasts 35 days
+[6. CDC + Lakehouse pilot] lasts 56 days
+[7. Consolidation wave 1: Cards] lasts 35 days
+[8. Consolidation wave 2: Loans] lasts 35 days
+[9. Consolidation wave 3: Core] lasts 49 days
+[10. Reporting cutover + legacy decommission] lasts 35 days
+
+[2. Target design freeze] starts at [1. Data discovery]'s end
+[3. Integration foundation] starts at [2. Target design freeze]'s end
+[4. MDM Customer Hub + RDM] starts at [3. Integration foundation]'s end
+[5. Interim DWH reporting] starts at [3. Integration foundation]'s end
+[6. CDC + Lakehouse pilot] starts at [4. MDM Customer Hub + RDM]'s end
+[7. Consolidation wave 1: Cards] starts at [6. CDC + Lakehouse pilot]'s end
+[8. Consolidation wave 2: Loans] starts at [7. Consolidation wave 1: Cards]'s end
+[9. Consolidation wave 3: Core] starts at [8. Consolidation wave 2: Loans]'s end
+[10. Reporting cutover + legacy decommission] starts at [9. Consolidation wave 3: Core]'s end
+
+[M3: Interim DWH + MDM] happens at [5. Interim DWH reporting]'s end
+[M6: Lakehouse pilot] happens at [6. CDC + Lakehouse pilot]'s end
+[M9: Cards + Loans consolidated] happens at [8. Consolidation wave 2: Loans]'s end
+[M12: Target state] happens at [10. Reporting cutover + legacy decommission]'s end
+
+@endgantt
